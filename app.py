@@ -13,10 +13,10 @@ if st.button("Submit"):
         st.write("Processing...")
 
         try:
-            result = root_agent(user_input)   # ✅ Correct way
+            result = root_agent.generate(user_input)   # ✅ Correct
 
             st.success("Response:")
-            st.write(result)
+            st.write(result.text)   # ✅ Show AI output
 
         except Exception as e:
             st.error("Error occurred:")
