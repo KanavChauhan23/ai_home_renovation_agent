@@ -1,5 +1,12 @@
 import streamlit as st
-from agent import root_agent
+import google.generativeai as genai
+import os
+
+# Configure API Key
+genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+
+# Load Gemini model
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 st.set_page_config(page_title="AI Home Renovation", layout="wide")
 
@@ -13,10 +20,9 @@ if st.button("Submit"):
         st.write("Processing...")
 
         try:
-            result = root_agent.generate(user_input)   # ✅ Correct
-
+            response = model.generate_content(user_input)
             st.success("Response:")
-            st.write(result.text)   # ✅ Show AI output
+            st.write(response.text)
 
         except Exception as e:
             st.error("Error occurred:")
