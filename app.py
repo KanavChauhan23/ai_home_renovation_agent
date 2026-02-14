@@ -34,7 +34,7 @@ if st.button("🚀 Generate Renovation Plan", use_container_width=True):
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a helpful home renovation expert. Provide practical, budget-conscious renovation advice with specific suggestions. Use Indian context and INR currency."
+                        "content": "You are a helpful home renovation expert. Provide practical, budget-conscious renovation advice with specific suggestions."
                     },
                     {
                         "role": "user",
@@ -53,53 +53,30 @@ if st.button("🚀 Generate Renovation Plan", use_container_width=True):
                 st.write(chat_completion.choices[0].message.content)
             
             st.markdown("---")
-            st.info("💡 **Tip:** Save this plan and consult with a professional contractor before starting work!")
+            st.info("💡 **Tip:** Save this plan and consult with a professional contractor!")
             
         except Exception as e:
             st.error(f"❌ Error: {str(e)}")
-            st.info("Please try again or check your API key.")
 
 with st.sidebar:
     st.markdown("### 📖 How to Use")
     st.markdown("""
     1. Enter your renovation question
-    2. Include room type and budget (in ₹)
+    2. Include room type and budget
     3. Click 'Generate Plan'
-    4. Get AI suggestions instantly!
-    """)
-    
-    st.markdown("---")
-    
-    st.markdown("### 🎯 What You Can Ask")
-    st.markdown("""
-    - Design ideas for Indian homes
-    - Budget estimates in INR
-    - Material suggestions (local markets)
-    - DIY vs professional advice
-    - Timeline planning
+    4. Get AI suggestions!
     """)
     
     st.markdown("---")
     
     st.markdown("### ⚙️ Powered By")
-    st.markdown("Groq AI (Llama 3.3 70B)")
-    st.markdown("✅ 14,400 requests/day FREE")
-    st.markdown("✅ No rate limits!")
+    st.markdown("Groq AI (Llama 3.3)")
 
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center'>
     <p>Built with ❤️ by Kanav Chauhan | 
-    <a href='https://github.com/KanavChauhan23' target='_blank'>GitHub</a> | 
-    <a href='https://github.com/KanavChauhan23/ai-home-renovation-agent' target='_blank'>Source Code</a>
+    <a href='https://github.com/KanavChauhan23' target='_blank'>GitHub</a>
     </p>
 </div>
 """, unsafe_allow_html=True)
-```
-
----
-
-### **Step 3: Update requirements.txt**
-```
-streamlit
-groq
