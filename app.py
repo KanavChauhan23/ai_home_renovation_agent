@@ -456,6 +456,7 @@ Make this plan INSPIRING, PRACTICAL, and ACHIEVABLE. Use Indian context, brands,
 **⚠️ Important**
 - Keep 10-15% buffer for unexpected costs
 - Take clear before and after photos to track progress.
+- Check material quality before buying.
                 """)
             
         except Exception as e:
