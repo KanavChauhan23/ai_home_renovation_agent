@@ -1,98 +1,68 @@
-### 🏚️ 🍌 AI Home Renovation Planner Agent
-A multi-agent system built with Google ADK that analyzes photos of your space, creates personalized renovation plans, and generates photorealistic renderings using Gemini 3 Flash and Gemini 3 Pro's multimodal capabilities.
+# 🏠 AI Home Renovation Planner
 
-### Features
-🔍 Smart Image Analysis: Upload room photos and inspiration images - agent automatically detects and analyzes them
-🎨 Photorealistic Rendering: Generates professional-quality images of your renovated space using Gemini 3 Pro
-💰 Budget-Aware Planning: Tailors recommendations to your budget constraints
-📊 Complete Roadmap: Provides timeline, budget breakdown, contractor list, and action checklist
-🤖 Multi-Agent Orchestration: Demonstrates Coordinator/Dispatcher + Sequential Pipeline patterns
-✏️ Iterative Refinement: Edit generated renderings based on feedback
+An AI-powered tool that helps homeowners plan renovations with personalized suggestions based on room type and budget.
 
-### How It Works
-The system uses a Coordinator/Dispatcher pattern with three specialized agents:
+![App Screenshot](screenshot.png)
 
-Visual Assessor 📸
+## ✨ Features
 
-Analyzes uploaded room photos (layout, condition, dimensions)
-Extracts style from inspiration images
-Estimates costs and identifies improvement opportunities
-Design Planner 🎨
+- 🎯 Smart renovation planning based on budget
+- 🏠 Multiple room types supported (Kitchen, Bedroom, Bathroom, Living Room)
+- 💰 Cost breakdown and material suggestions
+- 🎨 AI-generated design ideas
+- ⚡ Powered by Google's Gemini AI
 
-Creates budget-appropriate design plans
-Specifies exact materials, colors, and fixtures
-Prioritizes high-impact changes
-Project Coordinator 🏗️
+## 🚀 Live Demo
 
-Generates comprehensive renovation roadmap
-Creates photorealistic rendering of renovated space
-Provides budget breakdown, timeline, and action steps
+👉 **[Try it here](https://ai-home-renovation-kanavchauhan.streamlit.app/)**
 
+## 🛠️ Tech Stack
 
-### Quick Start
+- Python
+- Streamlit
+- Google Generative AI (Gemini)
+- LangChain (if you're using it)
 
-Install dependencies
+## 📸 Screenshots
 
+[Add 2-3 screenshots showing the app in action]
+
+## 💻 How to Run Locally
+
+1. Clone the repository
+```bash
+git clone https://github.com/KanavChauhan23/ai-home-renovation-agent.git
+cd ai-home-renovation-agent
+```
+
+2. Install dependencies
+```bash
 pip install -r requirements.txt
-Set up your API key
+```
 
-export GOOGLE_API_KEY="your_gemini_api_key"
-Or create a .env file:
+3. Add your Google API key to `.streamlit/secrets.toml`
 
-GOOGLE_API_KEY=your_gemini_api_key
-Launch ADK Web
+4. Run the app
+```bash
+streamlit run app.py
+```
 
-cd multi_agent_apps
-adk web
-Open browser and select "ai_home_renovation_agent"
+## 🎯 Use Cases
 
-Usage Examples
-Scenario 1: Current Room + Budget
-[Upload photo of your kitchen]
-"What can I improve here with a $5k budget?"
-→ Agent analyzes your space, suggests budget-friendly improvements, generates rendering
+- Homeowners planning DIY renovations
+- Interior designers seeking quick ideas
+- Real estate agents helping clients visualize potential
+- Budget-conscious renovators
 
-Scenario 2: Room + Inspiration
-[Upload photo 1: your kitchen]
-[Upload photo 2: Pinterest inspiration]
-"Transform my kitchen to look like this. What's the cost?"
-→ Agent extracts style from inspiration, applies to your room, provides budget + rendering
+## 🚀 Future Improvements
 
-Scenario 3: Text Only
-"Renovate my 10x12 kitchen with oak cabinets and laminate counters. 
-Want modern farmhouse style with white shaker cabinets. Budget: $30k"
-→ Agent creates design plan and generates rendering from description
+- [ ] Image upload for room analysis
+- [ ] 3D visualization integration
+- [ ] Contractor recommendations
+- [ ] Material price comparison
 
-Scenario 4: Iterative Refinement
-[After initial rendering]
-"Make the cabinets cream instead of white"
-"Add pendant lights over the island"
-"Change flooring to lighter oak"
-→ Agent refines the rendering with your feedback
+## 📧 Contact
 
-Sample Prompts
-"I want to renovate my small galley kitchen. It's 8x12 feet, has oak cabinets from the 90s. I love modern farmhouse style. Budget: $25k"
-"My master bathroom is tiny (5x8) with a cramped tub. I want a spa-like retreat with walk-in shower. Budget: $15k"
-"Transform my boring bedroom into a cozy retreat. Thinking accent wall, new flooring. Budget: $12k"
-Tools & Capabilities
-google_search: Finds renovation costs, materials, and trends
-estimate_renovation_cost: Calculates costs by room type and scope
-calculate_timeline: Estimates project duration
-generate_renovation_rendering: Creates photorealistic renderings
-edit_renovation_rendering: Refines renderings based on feedback
-Versioned artifacts: Automatic version tracking for all renderings
-Multi-Agent Pattern
-Demonstrates Coordinator/Dispatcher + Sequential Pipeline:
+Kanav Chauhan - kanavchauhan23@gmail.com
 
-Coordinator (Root Agent)
-    ├── Info Agent (quick Q&A)
-    └── Planning Pipeline (Sequential)
-          ├── Visual Assessor (image analysis)
-          ├── Design Planner (specifications)
-          └── Project Coordinator (rendering + roadmap)
-Why this pattern?
-
-Efficient: Only runs workflows that are needed
-Modular: Each agent has clear responsibilities
-Scalable: Easy to add new features
-Production-ready: Real-world agentic system pattern
+Project Link: [https://github.com/KanavChauhan23/ai-home-renovation-agent](https://github.com/KanavChauhan23/ai-home-renovation-agent)
