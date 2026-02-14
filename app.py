@@ -5,272 +5,311 @@ from PIL import Image
 from io import BytesIO
 import time
 
-# Initialize Groq client
+# Initialize clients
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-
-# Check for Hugging Face API token (optional, falls back to Pollinations)
-HF_TOKEN = st.secrets.get("HUGGINGFACE_API_KEY", None)
+HF_TOKEN = st.secrets["HUGGINGFACE_API_KEY"]
 
 st.set_page_config(page_title="AI Home Renovation Planner", layout="wide", page_icon="🏠")
 
+# Header
 st.title("🏠 AI Home Renovation Planner")
-st.markdown("**Plan your renovation smartly using AI** - Get detailed plans + AI-generated visualization!")
+st.markdown("**Professional renovation planning with AI-generated visualizations**")
+st.markdown("---")
 
-# Room type selection
-room_type = st.selectbox(
-    "Select room type",
-    ["Kitchen", "Bedroom", "Bathroom", "Living Room", "Dining Room", "Home Office", "Study Room"]
-)
+# Input section
+col1, col2 = st.columns(2)
 
-# Budget input
-budget = st.number_input(
-    "Enter budget (USD)",
-    min_value=1000,
-    max_value=1000000,
-    value=5000,
-    step=500
-)
+with col1:
+    room_type = st.text_input(
+        "🏡 Room Type",
+        placeholder="e.g., Kitchen, Bedroom, Living Room, Bathroom...",
+        help="Enter the type of room you want to renovate"
+    )
 
-def generate_image_pollinations(prompt):
-    """Generate image using Pollinations.ai (no API key needed)"""
-    try:
-        # Clean and encode prompt
-        clean_prompt = prompt.replace('\n', ' ').strip()
-        # Pollinations API endpoint
-        url = f"https://image.pollinations.ai/prompt/{requests.utils.quote(clean_prompt)}?width=1024&height=768&nologo=true"
-        
-        response = requests.get(url, timeout=60)
-        if response.status_code == 200:
-            return Image.open(BytesIO(response.content))
-        return None
-    except Exception as e:
-        st.warning(f"Pollinations API error: {str(e)}")
-        return None
+with col2:
+    budget = st.number_input(
+        "💰 Budget (USD)",
+        min_value=1000,
+        max_value=1000000,
+        value=7000,
+        step=500,
+        help="Enter your renovation budget"
+    )
 
 def generate_image_huggingface(prompt):
-    """Generate image using Hugging Face Stable Diffusion"""
+    """Generate image using Hugging Face Stable Diffusion XL"""
     try:
         API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
         headers = {"Authorization": f"Bearer {HF_TOKEN}"}
         
-        # Clean prompt
-        clean_prompt = prompt.replace('\n', ' ').strip()[:500]  # Limit length
+        # Enhanced prompt for better interior design images
+        enhanced_prompt = f"Professional interior design photograph, {prompt}, high quality 8k, architectural digest magazine style, bright natural lighting, professionally staged, wide angle shot, photorealistic"
         
-        response = requests.post(
-            API_URL,
-            headers=headers,
-            json={"inputs": clean_prompt},
-            timeout=60
-        )
+        payload = {
+            "inputs": enhanced_prompt[:900],  # API has length limits
+            "parameters": {
+                "negative_prompt": "blurry, distorted, ugly, low quality, cartoon, drawing, sketch, rendering, 3d render",
+                "num_inference_steps": 30,
+                "guidance_scale": 7.5
+            }
+        }
+        
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=90)
+        
+        if response.status_code == 503:
+            st.warning("⏳ Model is waking up... This may take 20-30 seconds on first use.")
+            time.sleep(20)
+            # Retry once
+            response = requests.post(API_URL, headers=headers, json=payload, timeout=90)
         
         if response.status_code == 200:
             return Image.open(BytesIO(response.content))
-        elif response.status_code == 503:
-            st.info("⏳ Model is loading... trying alternative method...")
-            time.sleep(3)
-            return None
         else:
+            st.error(f"Image generation failed: {response.status_code}")
             return None
+            
     except Exception as e:
-        st.warning(f"Hugging Face API error: {str(e)}")
+        st.error(f"Error generating image: {str(e)}")
         return None
 
 # Generate button
-if st.button("🚀 Generate Renovation Plan", use_container_width=True):
-    if budget < 1000:
-        st.warning("⚠️ Please enter a budget of at least $1000")
+if st.button("🚀 Generate Complete Renovation Plan", use_container_width=True, type="primary"):
+    
+    if not room_type or not room_type.strip():
+        st.error("⚠️ Please enter a room type (e.g., Kitchen, Bedroom, Living Room)")
         st.stop()
     
-    # Step 1: Generate renovation plan
-    with st.spinner("🤖 Creating your detailed renovation plan..."):
-        try:
-            detailed_prompt = f"""Create a comprehensive renovation plan for a {room_type} with a budget of ${budget}.
-
-Please provide:
-
-1. **Design Vision**:
-   - Overall design concept and style (modern, rustic, minimalist, etc.)
-   - Color palette (primary, secondary, accent colors - be specific with color names)
-   - Key materials and textures
-   - Atmosphere and mood
-
-2. **Detailed Budget Breakdown**:
-   - Paint & Supplies: $X
-   - Flooring: $X
-   - Lighting: $X
-   - Furniture: $X (list main pieces)
-   - Fixtures & Hardware: $X
-   - Decor & Accessories: $X
-   - Labor/Installation: $X
-   - Contingency (10%): $X
-   - TOTAL: ${budget}
-
-3. **4-Week Timeline**:
-   - Week 1: Planning & preparation
-   - Week 2: Core updates (paint, flooring)
-   - Week 3: Installation (furniture, fixtures)
-   - Week 4: Finishing touches
-
-4. **AI Visualization Prompt** (IMPORTANT - Be very descriptive):
-   Write a detailed prompt for AI image generation that describes the FINAL renovated {room_type}. Include:
-   - Exact view/angle (e.g., "wide shot from doorway")
-   - Specific colors used
-   - All furniture and their materials
-   - Lighting type and ambiance
-   - Textures and materials visible
-   - Overall atmosphere
-   - Style keywords (modern, cozy, bright, etc.)
-   
-Example format: "A bright modern kitchen with white subway tile backsplash, light oak floating shelves, marble countertops, brass fixtures, pendant lights over island, large window with natural light, potted herbs on windowsill, professional interior photography, magazine quality, 8k"
-
-Format with clear headers."""
-
-            chat_completion = client.chat.completions.create(
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are an expert interior designer. Provide detailed renovation plans with specific costs and comprehensive visual descriptions suitable for AI image generation."
-                    },
-                    {
-                        "role": "user",
-                        "content": detailed_prompt
-                    }
-                ],
-                model="llama-3.3-70b-versatile",
-                temperature=0.7,
-                max_tokens=3000
-            )
-            
-            renovation_plan = chat_completion.choices[0].message.content
-            
-            # Display the plan
-            st.success("✅ Renovation Plan Generated!")
-            st.markdown("---")
-            st.markdown(renovation_plan)
-            
-        except Exception as e:
-            st.error(f"❌ Error generating plan: {str(e)}")
-            st.stop()
+    if budget < 1000:
+        st.error("⚠️ Budget must be at least $1,000")
+        st.stop()
     
-    # Step 2: Extract image prompt and generate visualization
-    st.markdown("---")
-    with st.spinner("🎨 Generating AI visualization of your renovated space..."):
-        try:
-            # Extract the AI visualization prompt from the plan
-            # Look for the section after "AI Visualization Prompt" or "AI Image Generation Prompt"
-            if "AI Visualization Prompt" in renovation_plan or "AI Image Generation Prompt" in renovation_plan:
-                # Try to extract the prompt
-                lines = renovation_plan.split('\n')
-                image_prompt = ""
-                capture = False
-                
-                for line in lines:
-                    if "AI Visualization Prompt" in line or "AI Image Generation Prompt" in line or "visualization prompt" in line.lower():
-                        capture = True
-                        continue
-                    if capture:
-                        if line.strip() and not line.strip().startswith('#') and not line.strip().startswith('**'):
-                            image_prompt += line.strip() + " "
-                        if len(image_prompt) > 100:  # Got enough
-                            break
-                
-                # Enhance the prompt for better images
-                enhanced_prompt = f"Professional interior design photograph, {image_prompt.strip()}, high quality, 8k, architectural digest style, bright natural lighting, wide angle"
-                
-                st.info(f"🎨 **Image Prompt**: {enhanced_prompt[:200]}...")
-                
-                # Try to generate image
-                generated_image = None
-                
-                # Try Hugging Face first if token available
-                if HF_TOKEN:
-                    st.info("⏳ Generating with Hugging Face Stable Diffusion (15-30 seconds)...")
-                    generated_image = generate_image_huggingface(enhanced_prompt)
-                
-                # Fallback to Pollinations if HF failed or no token
-                if not generated_image:
-                    st.info("⏳ Generating with Pollinations.ai...")
-                    generated_image = generate_image_pollinations(enhanced_prompt)
-                
-                if generated_image:
-                    st.success("✅ AI Visualization Generated!")
-                    st.image(generated_image, caption=f"AI-Generated Visualization of Your Renovated {room_type}", use_container_width=True)
+    # Progress tracking
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    # STEP 1: Generate renovation plan
+    status_text.text("🤖 Creating your detailed renovation plan...")
+    progress_bar.progress(20)
+    
+    try:
+        detailed_prompt = f"""Create a comprehensive, professional renovation plan for a {room_type} with a budget of ${budget}.
+
+Structure your response with these exact sections:
+
+## 1. Design Vision & Concept
+- Overall design style and theme
+- Complete color palette (primary, secondary, accent - with specific color names)
+- Key materials and textures
+- Atmosphere and mood you're creating
+- Unique design elements that make this special
+
+## 2. Detailed Budget Breakdown
+Break down the ${budget} into these categories with specific dollar amounts:
+- Paint & Wall Preparation: $XXX
+- Flooring: $XXX
+- Lighting Fixtures: $XXX
+- Furniture (list main pieces): $XXX
+- Hardware & Fixtures: $XXX
+- Decor & Accessories: $XXX
+- Labor/Installation: $XXX
+- Contingency (10%): $XXX
+**TOTAL: ${budget}**
+
+## 3. Implementation Timeline
+Provide a week-by-week breakdown:
+- **Week 1**: Planning, ordering, preparation
+- **Week 2**: Demolition, painting, core updates
+- **Week 3**: Installation of fixtures, furniture
+- **Week 4**: Finishing touches, styling, completion
+
+## 4. AI Visualization Prompt
+Write a highly detailed, photorealistic description for AI image generation. Be extremely specific about:
+- Camera angle and framing
+- Every visible color (walls, floors, furniture)
+- All furniture pieces and their exact materials/finishes
+- Lighting sources and quality
+- Textures visible (wood grain, fabric types, metal finishes)
+- Decorative elements
+- Overall atmosphere and mood
+- Time of day and natural light
+
+Make it vivid enough that someone could visualize the exact space.
+
+Be practical, specific, and professional in all recommendations."""
+
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert interior designer with 20 years of experience. Provide detailed, realistic, and budget-conscious renovation plans. Be specific with costs, materials, and visual descriptions. Write in a professional but accessible tone."
+                },
+                {
+                    "role": "user",
+                    "content": detailed_prompt
+                }
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.7,
+            max_tokens=3000
+        )
+        
+        renovation_plan = chat_completion.choices[0].message.content
+        progress_bar.progress(50)
+        
+    except Exception as e:
+        st.error(f"❌ Error generating plan: {str(e)}")
+        st.stop()
+    
+    # STEP 2: Extract and generate image
+    status_text.text("🎨 Generating AI visualization (this takes 20-40 seconds)...")
+    progress_bar.progress(60)
+    
+    try:
+        # Extract visualization prompt
+        if "AI Visualization Prompt" in renovation_plan or "Visualization Prompt" in renovation_plan:
+            lines = renovation_plan.split('\n')
+            image_prompt = ""
+            capture = False
+            
+            for i, line in enumerate(lines):
+                if "visualization prompt" in line.lower() or "ai visualization" in line.lower():
+                    capture = True
+                    # Start capturing from next line
+                    continue
                     
-                    # Provide download button
-                    buf = BytesIO()
-                    generated_image.save(buf, format="PNG")
-                    byte_im = buf.getvalue()
-                    st.download_button(
-                        label="📥 Download Visualization",
-                        data=byte_im,
-                        file_name=f"{room_type.lower()}_renovation_${budget}.png",
-                        mime="image/png"
-                    )
-                else:
-                    st.warning("⚠️ Could not generate image. The renovation plan is still available above!")
-                    
+                if capture:
+                    # Stop if we hit another section header (## or #)
+                    if line.strip().startswith('#') and len(image_prompt) > 50:
+                        break
+                    # Collect the prompt text
+                    if line.strip() and not line.strip().startswith('**'):
+                        image_prompt += line.strip() + " "
+                    # Break if we have enough
+                    if len(image_prompt) > 400:
+                        break
+            
+            # Clean up the prompt
+            image_prompt = image_prompt.strip()
+            
+            # If extraction worked, use it
+            if len(image_prompt) > 50:
+                final_prompt = image_prompt
             else:
-                st.info("💡 Image generation prompt not clearly identified in the plan. Using general prompt...")
-                general_prompt = f"Professional interior design photo of a beautifully renovated {room_type}, modern style, budget ${budget}, high quality, architectural photography"
-                generated_image = generate_image_pollinations(general_prompt)
-                if generated_image:
-                    st.image(generated_image, caption=f"AI Visualization - {room_type}", use_container_width=True)
-                
-        except Exception as e:
-            st.warning(f"⚠️ Could not generate visualization: {str(e)}")
-            st.info("Your renovation plan is still available above!")
+                # Fallback: create generic prompt
+                final_prompt = f"beautiful modern {room_type}, professionally designed interior, high-end finishes, natural lighting, comfortable and inviting atmosphere"
+        else:
+            final_prompt = f"beautiful modern {room_type}, professionally designed interior, high-end finishes, natural lighting"
+        
+        progress_bar.progress(70)
+        
+        # Generate the image
+        generated_image = generate_image_huggingface(final_prompt)
+        progress_bar.progress(100)
+        status_text.empty()
+        
+    except Exception as e:
+        st.warning(f"⚠️ Could not generate visualization: {str(e)}")
+        generated_image = None
+    
+    # Display Results
+    st.success("✅ Complete Renovation Plan Generated!")
+    st.markdown("---")
+    
+    # Show renovation plan
+    st.markdown(renovation_plan)
+    
+    # Show generated image
+    if generated_image:
+        st.markdown("---")
+        st.markdown("## 🎨 AI-Generated Visualization")
+        st.image(generated_image, caption=f"Your Renovated {room_type.title()} - Budget: ${budget:,}", use_container_width=True)
+        
+        # Download button
+        buf = BytesIO()
+        generated_image.save(buf, format="PNG")
+        byte_im = buf.getvalue()
+        
+        st.download_button(
+            label="📥 Download Visualization (High Quality PNG)",
+            data=byte_im,
+            file_name=f"{room_type.lower().replace(' ', '_')}_renovation_${budget}.png",
+            mime="image/png",
+            use_container_width=True
+        )
+    else:
+        st.info("💡 Image generation unavailable, but your detailed renovation plan is above!")
     
     st.markdown("---")
-    st.info("💡 **Tip**: Save this plan and the visualization! Consult with a professional contractor before starting work.")
+    st.info("💡 **Next Steps**: Save this plan, discuss with contractors, and get detailed quotes before starting work!")
 
 # Sidebar
 with st.sidebar:
     st.markdown("### 📖 How It Works")
     st.markdown("""
-    1. **Select** your room type
-    2. **Enter** your budget
-    3. **Click** Generate
-    4. Get:
-       - 📋 Detailed renovation plan
-       - 💰 Budget breakdown
-       - 📅 Timeline
-       - 🎨 **AI-generated visualization!**
+    **Step 1**: Enter room type and budget
+    
+    **Step 2**: Click Generate
+    
+    **Step 3**: Receive:
+    - 📋 Complete renovation plan
+    - 💰 Itemized budget
+    - 📅 4-week timeline  
+    - 🎨 AI-generated photo
     """)
     
     st.markdown("---")
     
-    st.markdown("### 💡 Budget Guidelines")
+    st.markdown("### 💡 Budget Examples")
     st.markdown("""
-    - **Refresh**: $2,000 - $5,000
-    - **Update**: $5,000 - $15,000
-    - **Full Reno**: $15,000+
+    **Light Refresh**
+    - $2,000 - $5,000
+    - Paint, fixtures, decor
+    
+    **Medium Update**  
+    - $5,000 - $15,000
+    - New flooring, furniture
+    
+    **Full Renovation**
+    - $15,000 - $50,000+
+    - Complete transformation
     """)
     
     st.markdown("---")
     
-    st.markdown("### 🎨 Image Generation")
-    api_status = "🟢 Pollinations.ai (Free)"
-    if HF_TOKEN:
-        api_status = "🟢 Hugging Face SD (Premium)"
-    st.markdown(f"**Status**: {api_status}")
+    st.markdown("### ⚙️ Technology")
+    st.markdown("""
+    **Planning AI**  
+    Groq (Llama 3.3 70B)
+    
+    **Image Generation**  
+    Stable Diffusion XL
+    
+    **Status**: 🟢 Active
+    """)
     
     st.markdown("---")
     
-    st.markdown("### ⚙️ Powered By")
+    st.markdown("### 📊 Features")
     st.markdown("""
-    - **Planning**: Groq AI (Llama 3.3)
-    - **Images**: Stable Diffusion
-    - ✅ 100% FREE
-    - ✅ Unlimited use
+    ✅ Professional design advice
+    ✅ Realistic budget breakdowns
+    ✅ Detailed timelines
+    ✅ AI visualization
+    ✅ Downloadable images
+    ✅ Unlimited usage
+    ✅ 100% FREE
     """)
 
 # Footer
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center'>
-    <p>Built with ❤️ by Kanav Chauhan | 
-    <a href='https://github.com/KanavChauhan23' target='_blank'>GitHub</a> | 
-    <a href='https://github.com/KanavChauhan23/ai-home-renovation-agent' target='_blank'>Source Code</a>
+    <p><strong>Built with ❤️ by Kanav Chauhan</strong></p>
+    <p>
+        <a href='https://github.com/KanavChauhan23' target='_blank'>GitHub</a>
+    </p>
+    <p style='font-size: 12px; color: gray;'>
+        Powered by Groq AI & Stable Diffusion XL | Free Professional Renovation Planning
     </p>
 </div>
 """, unsafe_allow_html=True)
