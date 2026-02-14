@@ -1,8 +1,8 @@
 import streamlit as st
-from google import genai
+from openai import OpenAI
 
-# Initialize client
-client = genai.Client(api_key=st.secrets["GOOGLE_API_KEY"])
+# Initialize OpenAI client
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # Page config
 st.set_page_config(page_title="AI Home Renovation", layout="wide", page_icon="🏠")
@@ -29,7 +29,7 @@ user_input = st.text_input(
     placeholder="e.g., I want to renovate my kitchen with a $3000 budget"
 )
 
-# Submit button with improvements
+# Submit button
 if st.button("🚀 Generate Renovation Plan", use_container_width=True):
     if not user_input.strip():
         st.warning("⚠️ Please enter a question first.")
@@ -38,19 +38,30 @@ if st.button("🚀 Generate Renovation Plan", use_container_width=True):
     # Show loading spinner
     with st.spinner("🤖 AI is planning your renovation..."):
         try:
-            # Generate response
-            response = client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=user_input
+            # Generate response using OpenAI
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a helpful home renovation expert. Provide practical, budget-conscious renovation advice with specific suggestions."
+                    },
+                    {
+                        "role": "user",
+                        "content": user_input
+                    }
+                ],
+                max_tokens=500,
+                temperature=0.7
             )
             
             # Success message
             st.success("✅ Renovation Plan Generated!")
             
-            # Display response in a nice container
+            # Display response
             st.markdown("### 📋 Your Renovation Plan")
             with st.container():
-                st.write(response.text)
+                st.write(response.choices[0].message.content)
             
             # Add tips section
             st.markdown("---")
@@ -59,16 +70,16 @@ if st.button("🚀 Generate Renovation Plan", use_container_width=True):
         except Exception as e:
             st.error("❌ Oops! Something went wrong:")
             st.code(str(e))
-            st.info("💡 Try refreshing the page or rephrasing your question.")
+            st.info("💡 Try again or check your API key in settings.")
 
-# Sidebar with additional info
+# Sidebar
 with st.sidebar:
     st.markdown("### 📖 How to Use")
     st.markdown("""
     1. Enter your renovation question
-    2. Include room type and budget if possible
-    3. Click 'Generate Renovation Plan'
-    4. Get AI-powered suggestions!
+    2. Include room type and budget
+    3. Click 'Generate Plan'
+    4. Get AI suggestions!
     """)
     
     st.markdown("---")
@@ -85,7 +96,7 @@ with st.sidebar:
     st.markdown("---")
     
     st.markdown("### ⚙️ Powered By")
-    st.markdown("Google Gemini 2.0 Flash")
+    st.markdown("OpenAI GPT-3.5 Turbo")
 
 # Footer
 st.markdown("---")
@@ -97,3 +108,15 @@ st.markdown("""
     </p>
 </div>
 """, unsafe_allow_html=True)
+```
+
+---
+
+## **STEP 3: UPDATE requirements.txt**
+
+**Open your `requirements.txt` file**
+
+Make sure it has:
+```
+streamlit
+openai
