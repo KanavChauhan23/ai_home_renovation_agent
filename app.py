@@ -1,10 +1,6 @@
 import streamlit as st
 from groq import Groq
-import requests
-from PIL import Image
-from io import BytesIO
 import urllib.parse
-import time
 
 # Initialize Groq client
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
@@ -56,51 +52,17 @@ st.markdown("""
 # Header
 st.markdown('<h1 class="main-header">🧞‍♂️ RoomGenie</h1>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">AI-Powered Renovation Planning & Visualization</p>', unsafe_allow_html=True)
-st.markdown('<p class="tagline">"Professional renovation plans with AI visualization"</p>', unsafe_allow_html=True)
+st.markdown('<p class="tagline">"Professional renovation plans with AI-generated visuals"</p>', unsafe_allow_html=True)
 
 st.markdown("---")
 
 # Simple input
 user_input = st.text_area(
     "✨ Describe your dream renovation:",
-    placeholder="e.g., Modern kitchen with ₹50,000 budget. White cabinets, marble countertops, brass fixtures, pendant lights.",
+    placeholder="e.g., Modern kitchen, ₹50,000 budget, white cabinets, marble countertops, brass fixtures, pendant lights",
     height=120,
     help="Include: room type, budget, colors, materials, style"
 )
-
-def generate_simple_image(room_description):
-    """Generate image with simple, reliable method"""
-    try:
-        # Create very simple, focused prompt
-        simple_prompt = f"beautiful modern interior design of {room_description}, professional photography, high quality, well lit"
-        
-        # Encode for URL
-        encoded = urllib.parse.quote(simple_prompt[:300])
-        
-        # Pollinations URL with parameters for better quality
-        url = f"https://image.pollinations.ai/prompt/{encoded}?width=1024&height=768&nologo=true&model=flux&enhance=true&safe=true"
-        
-        # Longer timeout and multiple retries
-        for attempt in range(3):
-            try:
-                response = requests.get(url, timeout=120)
-                
-                if response.status_code == 200 and len(response.content) > 1000:
-                    return Image.open(BytesIO(response.content)), url
-                
-                # Wait between retries
-                if attempt < 2:
-                    time.sleep(5)
-                    
-            except:
-                if attempt < 2:
-                    time.sleep(5)
-                continue
-        
-        return None, url
-        
-    except Exception as e:
-        return None, None
 
 # Generate button
 if st.button("🚀 Generate My Dream Room", type="primary"):
@@ -126,22 +88,30 @@ if st.button("🚀 Generate My Dream Room", type="primary"):
 
             user_prompt = f"""{user_input}
 
-Create a renovation plan with:
+Create a comprehensive renovation plan with:
 
 ## 1. Design Vision
 - Style and theme
 - **Color Palette** (specific colors with hex codes)
-- **Materials** (wood types, metals, fabrics)
-- Mood
+- **Key Materials** (wood types, metals, fabrics)
+- Mood and atmosphere
 
 ## 2. Budget Breakdown
-Itemized costs
+Itemized costs totaling the budget
 
 ## 3. Timeline
-Week by week
+Week-by-week schedule (4 weeks)
 
-## 4. Visual Summary
-One paragraph describing the finished room - colors, furniture, lighting, layout."""
+## 4. Visual Description
+Write ONE detailed paragraph (100-150 words) describing the finished room. Include:
+- Exact colors of walls, furniture, accents
+- All furniture pieces and materials
+- Lighting (natural and artificial)
+- Layout and spatial feel
+- Textures and finishes
+- Overall atmosphere
+
+Make it vivid and photorealistic!"""
 
             response = client.chat.completions.create(
                 messages=[
@@ -150,7 +120,7 @@ One paragraph describing the finished room - colors, furniture, lighting, layout
                 ],
                 model="llama-3.3-70b-versatile",
                 temperature=0.7,
-                max_tokens=2000
+                max_tokens=2500
             )
             
             plan = response.choices[0].message.content
@@ -159,65 +129,80 @@ One paragraph describing the finished room - colors, furniture, lighting, layout
             st.success("✅ Renovation Plan Ready!")
             st.markdown(plan)
             
+            # Extract visual description for image
+            visual_desc = ""
+            if "visual description" in plan.lower():
+                lines = plan.split('\n')
+                capture = False
+                for line in lines:
+                    if "visual description" in line.lower():
+                        capture = True
+                        continue
+                    if capture and line.strip():
+                        if line.strip().startswith('#'):
+                            break
+                        visual_desc += line.strip() + " "
+                        if len(visual_desc) > 300:
+                            break
+            
+            if len(visual_desc) < 50:
+                visual_desc = user_input[:250]
+            
         except Exception as e:
             st.error(f"❌ Error: {str(e)}")
             progress_bar.empty()
             status_text.empty()
             st.stop()
     
-    # Generate image
+    # Generate and display image
     with image_col:
         status_text.text("🎨 Generating visualization...")
-        progress_bar.progress(60)
+        progress_bar.progress(70)
         
-        # Extract simple room description from user input
-        room_desc = user_input.split('.')[0] if '.' in user_input else user_input[:200]
-        
-        st.info("⏳ Generating image... Please wait 30-60 seconds...")
-        
-        generated_image, image_url = generate_simple_image(room_desc)
-        
-        progress_bar.progress(100)
-        status_text.empty()
-        
-        if generated_image:
+        try:
+            # Create enhanced prompt for image
+            image_prompt = f"professional interior design photography, {visual_desc.strip()}, high quality, well lit, modern, clean, architectural photography, magazine quality"
+            
+            # Encode for URL
+            encoded_prompt = urllib.parse.quote(image_prompt[:500])
+            
+            # Generate Pollinations URL
+            image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=768&nologo=true&model=flux&enhance=true"
+            
+            progress_bar.progress(100)
+            status_text.empty()
+            
             st.success("✅ Visualization Generated!")
-            st.image(generated_image, caption="Your Dream Room", use_container_width=True)
             
-            # Download button
-            buf = BytesIO()
-            generated_image.save(buf, format="PNG")
-            st.download_button(
-                label="📥 Download Image",
-                data=buf.getvalue(),
-                file_name="roomgenie.png",
-                mime="image/png",
-                use_container_width=True
-            )
-        else:
-            st.warning("⚠️ Image generation is taking longer than expected.")
+            # Display image directly from URL
+            st.image(image_url, caption="Your Dream Room (AI-Generated)", use_container_width=True)
             
-            if image_url:
-                st.info("💡 **Alternative**: Click the link below to view your generated image:")
-                st.markdown(f"[🖼️ View Generated Image]({image_url})")
-                st.caption("(The image might take a few seconds to load)")
+            # Provide direct link as backup
+            st.markdown(f"[🔗 Open full image in new tab]({image_url})")
+            
+            # Info about downloading
+            st.caption("💡 Right-click the image above and select 'Save image as...' to download")
+            
+        except Exception as e:
+            st.error(f"Image error: {str(e)}")
+            st.info("Your renovation plan is ready above!")
     
     progress_bar.empty()
     
     st.markdown("---")
-    st.info("💡 **Tip**: Bookmark or screenshot this page to save your plan!")
+    st.info("💡 **Tip**: Screenshot or bookmark this page to save your plan and visualization!")
 
 # Sidebar
 with st.sidebar:
     st.markdown("### 🧞‍♂️ About RoomGenie")
     st.markdown("""
-    Professional AI renovation planning
+    AI-powered renovation planning with instant visualizations!
     
-    **What you get:**
-    - 📋 Detailed design plan
-    - 💰 Budget breakdown
-    - 📅 Timeline
-    - 🎨 AI visualization (when available)
+    **Features:**
+    - 📋 Detailed design plans
+    - 💰 Budget breakdowns
+    - 📅 Timelines
+    - 🎨 AI-generated images
     
     **100% FREE**
     """)
@@ -226,38 +211,36 @@ with st.sidebar:
     
     st.markdown("### 💡 Tips")
     st.markdown("""
-    **For best results include:**
+    **Include in your description:**
     - Room type
-    - Budget
+    - Budget (₹)
     - Colors you want
     - Materials (wood, marble, etc.)
     - Style (modern, rustic, etc.)
+    
+    **More details = better results!**
     """)
     
     st.markdown("---")
     
-    st.markdown("### 📝 Examples")
+    st.markdown("### 📝 Example")
     
     st.code("""
-"Modern bedroom, ₹35,000,
-white walls, oak furniture,
-minimalist, natural light"
-    """, language=None)
-    
-    st.code("""
-"Cozy living room, ₹45,000,
-warm tones, plants, 
-comfortable seating"
+"Modern bedroom, ₹35,000 budget.
+Soft white walls, warm oak bed
+frame, minimalist design, sage
+green accents, natural lighting,
+cozy textiles"
     """, language=None)
     
     st.markdown("---")
     
-    st.markdown("### ⚙️ Tech")
+    st.markdown("### ⚙️ Technology")
     st.markdown("""
-    **Planning**: Groq AI  
-    **Images**: Pollinations AI
+    **Planning AI**: Groq (Llama 3.3)  
+    **Images**: Pollinations AI  
     
-    🟢 Active
+    🟢 **Status**: Active
     """)
 
 # Footer
@@ -266,10 +249,11 @@ st.markdown("""
 <div style='text-align: center; color: #666;'>
     <p><strong>✨ Built with ❤️ by Kanav Chauhan ✨</strong></p>
     <p>
-        <a href='https://github.com/KanavChauhan23' target='_blank'>GitHub</a>
+        <a href='https://github.com/KanavChauhan23' target='_blank'>GitHub</a> | 
+        <a href='https://github.com/KanavChauhan23/ai-home-renovation-agent' target='_blank'>Source</a>
     </p>
     <p style='font-size: 12px; margin-top: 10px;'>
-        🧞‍♂️ RoomGenie - AI Renovation Planning
+        🧞‍♂️ RoomGenie - AI Renovation Planning & Visualization
     </p>
 </div>
 """, unsafe_allow_html=True)
