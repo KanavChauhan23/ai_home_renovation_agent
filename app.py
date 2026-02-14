@@ -1,7 +1,18 @@
 import streamlit as st
 from openai import OpenAI
+import os
 
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# Try to get API key from secrets or environment
+try:
+    api_key = st.secrets["OPENAI_API_KEY"]
+except:
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+
+if not api_key:
+    st.error("⚠️ OpenAI API key not found. Please add it to Streamlit Secrets.")
+    st.stop()
+
+client = OpenAI(api_key=api_key)
 
 st.set_page_config(page_title="AI Home Renovation", layout="wide", page_icon="🏠")
 
