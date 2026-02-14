@@ -378,20 +378,7 @@ Make this plan INSPIRING, PRACTICAL, and ACHIEVABLE. Use Indian context, brands,
             
             # Show the prompt in a copyable box
             st.markdown("### 📋 Your AI Image Prompt:")
-            st.info("💡 **Tip:** Click inside the text box below to select all, then copy (Ctrl+C / Cmd+C)")
-            
-            # Display prompt in text area (easier to copy)
-            st.text_area(
-                "",
-                value=image_prompt.strip(),
-                height=150,
-                key="image_prompt_area",
-                label_visibility="collapsed"
-            )
-            
-            # Alternative: Also show in code block with built-in copy button
-            with st.expander("📄 View as formatted text"):
-                st.code(image_prompt.strip(), language=None)
+            st.code(image_prompt.strip(), language=None)
             
             # Create Gemini link with pre-filled prompt
             gemini_prompt = f"Generate an image: {image_prompt.strip()}"
